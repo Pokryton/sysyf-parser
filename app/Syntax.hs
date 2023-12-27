@@ -1,6 +1,7 @@
 module Syntax where
 
-type CompUnit = [GlobalDef]
+newtype CompUnit = CompUnit [GlobalDef]
+  deriving (Eq, Show)
 
 data GlobalDef
   = FuncDef (Maybe VarType) String [Param] Block
