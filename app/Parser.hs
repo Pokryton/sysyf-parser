@@ -3,24 +3,24 @@ module Parser where
 import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Expr
-import Data.Functor
 
 import Lexer
 import Syntax
 
 expr = addExpr
 
-isOp s op = symbol s $> op
+symb op s = op <$ symbol s
+keyword f s = f <$ reserved s
 
-addOp = ("+" `isOp` Add) <|> ("-" `isOp` Sub)
+addOp = (Add `symb` "+") <|> (Sub `symb` "-")
 
 addExpr = mulExpr `chainl1` (BinaryExpr <$> addOp)
 
-mulOp = ("*" `isOp` Mul) <|> ("/" `isOp` Div) <|> ("%" `isOp` Mod)
+mulOp = (Mul `symb` "*") <|> (Div `symb` "/") <|> (Mod `symb` "%")
 
 mulExpr = unaryExpr `chainl1` (BinaryExpr <$> mulOp)
 
-unaryOp = ("+" `isOp` Pos) <|> ("-" `isOp` Neg) <|> ("!" `isOp` Not)
+unaryOp = (Pos `symb` "+") <|> (Neg `symb` "-") <|> (Not `symb` "!")
 
 unaryExpr = do
   ops <- many unaryOp
@@ -36,19 +36,19 @@ var = Var <$> identifier <*> many (brackets expr)
 call = Call <$> identifier <*> parens (commaSep expr)
 
 relOp = choice
-      [ "==" `isOp` Eq
-      , "!=" `isOp` Ne
-      , "<" `isOp` Lt
-      , "<=" `isOp` Le
-      , ">" `isOp` Gt
-      , ">=" `isOp` Ge
+      [ Eq `symb` "=="
+      , Ne `symb` "!="
+      , Lt `symb` "<"
+      , Le `symb` "<="
+      , Gt `symb` ">"
+      , Ge `symb` ">="
       ]
 
 relExpr = expr `chainl1` (RelExpr <$> relOp)
 
-landExpr = relExpr `chainl1` (LogicExpr <$> ("&&" `isOp` LAnd))
+landExpr = relExpr `chainl1` (LogicExpr <$> (LAnd `symb` "&&"))
 
-lorExpr = landExpr `chainl1` (LogicExpr <$> ("||" `isOp` LOr))
+lorExpr = landExpr `chainl1` (LogicExpr <$> (LOr `symb` "||"))
 
 condExpr = lorExpr
 
@@ -73,19 +73,19 @@ assignStmt = do
   semi
   return $ AssignStmt name index value
 
-emptyStmt = semi $> EmptyStmt
+emptyStmt = EmptyStmt <$ semi
 
 blockStmt = BlockStmt <$> block
 
-blockItems = (pure <$> try stmt) <|> (map VarDefStmt <$> defs)
+blockItems = try (pure <$> stmt) <|> (map VarDefStmt <$> defs)
 
 block = concat <$> braces (many blockItems)
 
-breakStmt = reserved "break" >> semi $> BreakStmt
+breakStmt = BreakStmt `keyword` "break" <* semi
 
-continueStmt = reserved "continue" >> semi $> ContinueStmt
+continueStmt = ContinueStmt `keyword` "continue" <* semi
 
-returnStmt = ReturnStmt <$> (reserved "return" *> optionMaybe expr <* semi)
+returnStmt = ReturnStmt `keyword` "return" <*> optionMaybe expr <* semi
 
 ifStmt = do
   reserved "if"
@@ -100,7 +100,7 @@ whileStmt = do
   body <- stmt
   return $ WhileStmt cond body
 
-varType = (reserved "int" $> IntType) <|> (reserved "float" $> FloatType)
+varType = (IntType `keyword` "int") <|> (FloatType `keyword` "float")
 
 initVal = try (InitList <$> braces (commaSep initVal)) <|> (InitExpr <$> expr)
 
@@ -129,7 +129,7 @@ params = do
   return $ Param elemType name index
 
 funcDef = do
-  retType <- (Just <$> varType) <|> (reserved "void" $> Nothing)
+  retType <- (Just <$> varType) <|> (Nothing `keyword` "void")
   name <- identifier
   params <- parens (commaSep params)
   body <- block
