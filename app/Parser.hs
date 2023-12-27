@@ -2,15 +2,16 @@ module Parser where
 
 import Text.Parsec
 import Text.Parsec.Expr
+import Data.Functor
 
 import Lexer
 import Syntax
 
-expr = buildExpressionParser table unary <?> "expression"
+expr = buildExpressionParser table unary
   where
     table = [ [binary "*" Times, binary "/" Divide, binary "%" Modulo]
             , [binary "+" Plus, binary "-" Minus]]
-    binary name f = Infix (reservedOp name >> return (BinaryExpr f)) AssocLeft
+    binary name f = Infix (reservedOp name $> (BinaryExpr f)) AssocLeft
 
 unary = (prefix "+" Positive)
      <|> (prefix "-" Negative)
@@ -27,21 +28,45 @@ var = Var <$> identifier
 
 call = Call <$> identifier <*> parens (commaSep expr)
 
-stmt = try emptyStmt
-    <|> try exprStmt
-    <|> try breakStmt
-    <|> try continueStmt
+condExpr = buildExpressionParser table (JustExpr <$> expr)
+  where
+    table = [ [rel "==" Eq, rel "!=" Neq, rel "<" Lt, rel "<=" Le, rel ">" Gt, rel ">=" Ge]
+            , [logic "&&" LAnd]
+            , [logic "||" LOr]]
+    rel name f = binary name (RelExpr f)
+    logic name f = binary name (LogicExpr f)
+    binary name f = Infix (reservedOp name $> f) AssocLeft
+
+stmt = emptyStmt
+    <|> exprStmt
+    <|> ifStmt
+    <|> whileStmt
+    <|> breakStmt
+    <|> continueStmt
     <|> blockStmt
 
-emptyStmt = semi >> return EmptyStmt
+emptyStmt = semi $> EmptyStmt
 
 exprStmt = ExprStmt <$> expr <* semi
 
 blockStmt = BlockStmt <$> braces (many stmt)
 
-breakStmt = reserved "break" >> semi >> return BreakStmt
+breakStmt = reserved "break" >> semi $> BreakStmt
 
-continueStmt = reserved "continue" >> semi >> return ContinueStmt
+continueStmt = reserved "continue" >> semi $> ContinueStmt
+
+ifStmt = do
+  reserved "if"
+  cond <- parens condExpr
+  true <- stmt
+  false <- (reserved "else" >> stmt) <|> return EmptyStmt
+  return $ IfStmt cond true false
+
+whileStmt = do
+  reserved "while"
+  cond <- parens condExpr
+  body <- stmt
+  return $ WhileStmt cond body
 
 compUnit = (many stmt) <* eof
 

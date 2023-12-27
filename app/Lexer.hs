@@ -14,10 +14,10 @@ def = emptyDef
         , P.identLetter     = alphaNum <|> char '_'
         , P.opStart         = oneOf "!%&*+-/<=>|"
         , P.opLetter        = oneOf "&=|"
-        , P.reservedOpNames = ["+", "-", "*", "/", "%", "!", "<", ">"
+        , P.reservedOpNames = [ "+", "-", "*", "/", "%", "!", "<", ">"
                               , "<=", ">=", "==", "!=", "&&", "||"]
-        , P.reservedNames   = ["void", "int", "float", "if", "while"
-                              , "break", "continue"]
+        , P.reservedNames   = [ "void", "int", "float", "if", "else"
+                              , "while" , "break", "continue"]
         , P.caseSensitive   = True
         }
 
