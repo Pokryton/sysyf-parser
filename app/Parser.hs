@@ -77,7 +77,7 @@ emptyStmt = EmptyStmt <$ semi
 
 blockStmt = BlockStmt <$> block
 
-blockItems = try (pure <$> stmt) <|> (map DefStmt <$> defs)
+blockItems = (pure <$> stmt) <|> (map DefStmt <$> defs)
 
 block = concat <$> braces (many blockItems)
 
@@ -102,7 +102,7 @@ whileStmt = do
 
 varType = (IntType `keyword` "int") <|> (FloatType `keyword` "float")
 
-initVal = try (InitList <$> braces (commaSep initVal)) <|> (InitExpr <$> expr)
+initVal = (InitList <$> braces (commaSep initVal)) <|> (InitExpr <$> expr)
 
 constDefs = do
   reserved "const"
