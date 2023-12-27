@@ -55,9 +55,11 @@ stmt = choice
       , blockStmt
       ]
 
-emptyStmt = semi $> EmptyStmt
-
 exprStmt = ExprStmt <$> expr <* semi
+
+assignStmt = Assign <$> lval <*> (reservedOp "=" *> expr <* semi)
+
+emptyStmt = semi $> EmptyStmt
 
 blockStmt = BlockStmt <$> block
 
@@ -70,8 +72,6 @@ breakStmt = reserved "break" >> semi $> BreakStmt
 continueStmt = reserved "continue" >> semi $> ContinueStmt
 
 returnStmt = ReturnStmt <$> (reserved "return" *> optionMaybe expr <* semi)
-
-assignStmt = Assign <$> lval <*> (reservedOp "=" *> expr <* semi)
 
 ifStmt = do
   reserved "if"
@@ -121,7 +121,7 @@ funcDef = do
   body <- block
   return $ FuncDef retType name params body
 
-globalDefs = try defs <|> (pure <$> funcDef)
+globalDefs = try (map Global <$> defs) <|> (pure <$> funcDef)
 
 compUnit = concat <$> (many globalDefs) <* eof
 

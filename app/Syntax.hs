@@ -2,10 +2,14 @@ module Syntax where
 
 type CompUnit = [Def]
 
+data GlobalDef
+  = FuncDef RetType String [Param] Block
+  | Global Def
+  deriving (Eq, Show)
+
 data Def
   = ConstDef VarType String [Expr] InitVal
   | VarDef VarType String [Expr] (Maybe InitVal)
-  | FuncDef RetType String [Param] Block
   deriving (Eq, Show)
 
 data InitVal = InitExpr Expr | InitList [InitVal]
