@@ -6,12 +6,18 @@ import Text.Parsec.Expr
 import Lexer
 import Syntax
 
-binary s f = Infix (reservedOp s >> return (BinaryExpr f)) AssocLeft
+expr = buildExpressionParser table unary <?> "expression"
+  where
+    table = [ [binary "*" Times, binary "/" Divide, binary "%" Modulo]
+            , [binary "+" Plus, binary "-" Minus]]
+    binary name f = Infix (reservedOp name >> return (BinaryExpr f)) AssocLeft
 
-table = [ [binary "*" Times, binary "/" Divide, binary "%" Modulo]
-        , [binary "+" Plus, binary "-" Minus]]
-
-expr = buildExpressionParser table primary
+unary = (prefix "+" Positive)
+     <|> (prefix "-" Negative)
+     <|> (prefix "!" Not)
+     <|> primary
+  where
+    prefix name f = reservedOp name >> UnaryExpr f <$> unary
 
 primary = number <|> parens expr <|> try call <|> var
 
@@ -37,6 +43,6 @@ breakStmt = reserved "break" >> semi >> return BreakStmt
 
 continueStmt = reserved "continue" >> semi >> return ContinueStmt
 
-compUnit = spaces *> (many stmt) <* eof
+compUnit = (many stmt) <* eof
 
 parseCompUnit = parse compUnit

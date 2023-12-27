@@ -14,9 +14,13 @@ data Expr
   = ConstInt Integer
   | ConstFloat Double
   | BinaryExpr BinaryOp Expr Expr
+  | UnaryExpr UnaryOp Expr
   | Var String
   | Call String [Expr]
   deriving (Eq, Show)
 
 data BinaryOp = Plus | Minus | Times | Divide | Modulo
+  deriving (Eq, Show)
+
+data UnaryOp = Positive | Negative | Not
   deriving (Eq, Show)

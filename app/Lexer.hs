@@ -4,22 +4,24 @@ import Text.Parsec
 import Text.Parsec.Language (emptyDef)
 import qualified Text.Parsec.Token as P
 
-style :: P.LanguageDef st
-style = emptyDef
-         { P.commentStart    = "/*"
-         , P.commentEnd      = "*/"
-         , P.commentLine     = "//"
-         , P.nestedComments  = False
-         , P.identStart      = letter <|> char '_'
-         , P.identLetter     = alphaNum <|> char '_'
-         , P.reservedOpNames = ["+", "-", "*", "/", "%", "!", "<", ">"
-                               , "<=", ">=", "==", "!=", "&&", "||"]
-         , P.reservedNames   = ["void", "int", "float", "if", "while"
-                               , "break", "continue"]
-         , P.caseSensitive   = True
-         }
+def :: P.LanguageDef st
+def = emptyDef
+        { P.commentStart    = "/*"
+        , P.commentEnd      = "*/"
+        , P.commentLine     = "//"
+        , P.nestedComments  = False
+        , P.identStart      = letter <|> char '_'
+        , P.identLetter     = alphaNum <|> char '_'
+        , P.opStart         = oneOf "!%&*+-/<=>|"
+        , P.opLetter        = oneOf "&=|"
+        , P.reservedOpNames = ["+", "-", "*", "/", "%", "!", "<", ">"
+                              , "<=", ">=", "==", "!=", "&&", "||"]
+        , P.reservedNames   = ["void", "int", "float", "if", "while"
+                              , "break", "continue"]
+        , P.caseSensitive   = True
+        }
 
-lexer = P.makeTokenParser style
+lexer = P.makeTokenParser def
 
 integer = P.integer lexer
 float = P.float lexer
