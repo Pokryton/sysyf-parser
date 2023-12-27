@@ -1,9 +1,9 @@
 module Syntax where
 
-type CompUnit = [Def]
+type CompUnit = [GlobalDef]
 
 data GlobalDef
-  = FuncDef RetType String [Param] Block
+  = FuncDef (Maybe VarType) String [Param] Block
   | Global Def
   deriving (Eq, Show)
 
@@ -21,7 +21,7 @@ data Param = Param VarType String (Maybe [Expr])
 data VarType = IntType | FloatType
   deriving (Eq, Show)
 
-type RetType = Maybe VarType
+type Block = [Stmt]
 
 data Stmt
   = EmptyStmt
@@ -29,14 +29,12 @@ data Stmt
   | BlockStmt Block
   | IfStmt Expr Stmt (Maybe Stmt)
   | WhileStmt Expr Stmt
-  | VarDefStmt Def
+  | DefStmt Def
   | ReturnStmt (Maybe Expr)
   | AssignStmt String [Expr] Expr
   | BreakStmt
   | ContinueStmt
   deriving (Eq, Show)
-
-type Block = [Stmt]
 
 data Expr
   = ConstInt Integer
@@ -48,8 +46,6 @@ data Expr
   | RelExpr RelOp Expr Expr
   | LogicExpr LogicOp Expr Expr
   deriving (Eq, Show)
-
-data LVal = LVal String [Expr]
 
 data BinaryOp = Add | Sub | Mul | Div | Mod
   deriving (Eq, Show)

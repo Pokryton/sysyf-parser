@@ -7,20 +7,20 @@ import Text.Parsec.Expr
 import Lexer
 import Syntax
 
-expr = addExpr
-
-symb op s = op <$ symbol s
+sym op s = op <$ symbol s
 keyword f s = f <$ reserved s
 
-addOp = (Add `symb` "+") <|> (Sub `symb` "-")
+expr = addExpr
+
+addOp = (Add `sym` "+") <|> (Sub `sym` "-")
 
 addExpr = mulExpr `chainl1` (BinaryExpr <$> addOp)
 
-mulOp = (Mul `symb` "*") <|> (Div `symb` "/") <|> (Mod `symb` "%")
+mulOp = (Mul `sym` "*") <|> (Div `sym` "/") <|> (Mod `sym` "%")
 
 mulExpr = unaryExpr `chainl1` (BinaryExpr <$> mulOp)
 
-unaryOp = (Pos `symb` "+") <|> (Neg `symb` "-") <|> (Not `symb` "!")
+unaryOp = (Pos `sym` "+") <|> (Neg `sym` "-") <|> (Not `sym` "!")
 
 unaryExpr = do
   ops <- many unaryOp
@@ -29,39 +29,39 @@ unaryExpr = do
 
 primaryExpr = choice [try call, var, number, parens expr]
 
-number = try (ConstInt <$> integer) <|> (ConstFloat <$> float)
+number = try (ConstFloat <$> float) <|> (ConstInt <$> integer)
 
 var = Var <$> identifier <*> many (brackets expr)
 
 call = Call <$> identifier <*> parens (commaSep expr)
 
 relOp = choice
-      [ Eq `symb` "=="
-      , Ne `symb` "!="
-      , Lt `symb` "<"
-      , Le `symb` "<="
-      , Gt `symb` ">"
-      , Ge `symb` ">="
+      [ Eq `sym` "=="
+      , Ne `sym` "!="
+      , Lt `sym` "<"
+      , Le `sym` "<="
+      , Gt `sym` ">"
+      , Ge `sym` ">="
       ]
 
 relExpr = expr `chainl1` (RelExpr <$> relOp)
 
-landExpr = relExpr `chainl1` (LogicExpr <$> (LAnd `symb` "&&"))
+landExpr = relExpr `chainl1` (LogicExpr <$> (LAnd `sym` "&&"))
 
-lorExpr = landExpr `chainl1` (LogicExpr <$> (LOr `symb` "||"))
+lorExpr = landExpr `chainl1` (LogicExpr <$> (LOr `sym` "||"))
 
 condExpr = lorExpr
 
 stmt = choice
-      [ try exprStmt
-      , assignStmt
-      , emptyStmt
+      [ emptyStmt
+      , blockStmt
       , ifStmt
       , whileStmt
       , returnStmt
       , breakStmt
       , continueStmt
-      , blockStmt
+      , try exprStmt
+      , assignStmt
       ]
 
 exprStmt = ExprStmt <$> expr <* semi
@@ -77,7 +77,7 @@ emptyStmt = EmptyStmt <$ semi
 
 blockStmt = BlockStmt <$> block
 
-blockItems = try (pure <$> stmt) <|> (map VarDefStmt <$> defs)
+blockItems = try (pure <$> stmt) <|> (map DefStmt <$> defs)
 
 block = concat <$> braces (many blockItems)
 
@@ -107,7 +107,7 @@ initVal = try (InitList <$> braces (commaSep initVal)) <|> (InitExpr <$> expr)
 constDefs = do
   reserved "const"
   elemType <- varType
-  commaSep $ do
+  commaSep1 $ do
     Var name index <- var
     symbol "="
     init <- initVal
@@ -115,12 +115,12 @@ constDefs = do
 
 varDefs = do
   elemType <- varType
-  commaSep $ do
+  commaSep1 $ do
     Var name index <- var
     init <- optionMaybe (symbol "=" >> initVal)
     return $ VarDef elemType name index init
 
-defs = (try constDefs <|> varDefs) <* semi
+defs = (constDefs <|> varDefs) <* semi
 
 params = do
   elemType <- varType

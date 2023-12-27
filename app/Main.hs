@@ -1,7 +1,7 @@
 module Main where
 
-import System.Environment
 import Data.Either
+import System.Environment
 import Text.Show.Pretty
 
 import Parser
