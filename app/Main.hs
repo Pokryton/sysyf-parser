@@ -1,6 +1,8 @@
 module Main where
 
 import System.Environment
+import Data.Either
+import Text.Show.Pretty
 
 import Parser
 
@@ -12,6 +14,4 @@ main = do
   else do
     let filename = head args
     contents <- readFile filename
-    case parseCompUnit filename contents of
-      Left err -> print err
-      Right ex -> mapM_ print ex
+    either print pPrint (parseCompUnit filename contents)
