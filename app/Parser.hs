@@ -1,6 +1,7 @@
 module Parser where
 
 import Text.Parsec
+import Text.Parsec.String
 import Text.Parsec.Expr
 import Data.Functor
 
@@ -120,8 +121,8 @@ funcDef = do
   body <- block
   return $ FuncDef retType name params body
 
-globalDefs = (pure <$> try funcDef) <|> defs
+globalDefs = try defs <|> (pure <$> funcDef)
 
 compUnit = concat <$> (many globalDefs) <* eof
 
-parseCompUnit = parse compUnit
+parseFile = parseFromFile compUnit

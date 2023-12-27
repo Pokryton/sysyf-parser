@@ -12,6 +12,5 @@ main = do
   if null args then
     putStrLn "Usage: ./sysyf-parser <file>"
   else do
-    let filename = head args
-    contents <- readFile filename
-    either print pPrint (parseCompUnit filename contents)
+    res <- parseFile $ head args
+    either print pPrint res
