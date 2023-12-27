@@ -27,7 +27,7 @@ data Stmt
   = EmptyStmt
   | ExprStmt Expr
   | BlockStmt Block
-  | IfStmt Expr Stmt Stmt
+  | IfStmt Expr Stmt (Maybe Stmt)
   | WhileStmt Expr Stmt
   | VarDefStmt Def
   | ReturnStmt (Maybe Expr)

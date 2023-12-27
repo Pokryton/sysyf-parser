@@ -8,23 +8,26 @@ import Data.Functor
 import Lexer
 import Syntax
 
-expr = buildExpressionParser table unary
-  where
-    table = [ [binary "*" Mul, binary "/" Div, binary "%" Mod]
-            , [binary "+" Add, binary "-" Sub]
-            ]
-    binary name op = Infix (reservedOp name $> (BinaryExpr op)) AssocLeft
+expr = addExpr
 
-unary = do
-  ops <- many $ choice
-           [ reservedOp "+" $> Pos
-           , reservedOp "-" $> Neg
-           , reservedOp "!" $> Not
-           ]
-  p <- primary
+isOp s op = symbol s $> op
+
+addOp = ("+" `isOp` Add) <|> ("-" `isOp` Sub)
+
+addExpr = mulExpr `chainl1` (BinaryExpr <$> addOp)
+
+mulOp = ("*" `isOp` Mul) <|> ("/" `isOp` Div) <|> ("%" `isOp` Mod)
+
+mulExpr = unaryExpr `chainl1` (BinaryExpr <$> mulOp)
+
+unaryOp = ("+" `isOp` Pos) <|> ("-" `isOp` Neg) <|> ("!" `isOp` Not)
+
+unaryExpr = do
+  ops <- many unaryOp
+  p <- primaryExpr
   return $ foldr UnaryExpr p ops
 
-primary = try call <|> var <|> number <|> parens expr
+primaryExpr = choice [try call, var, number, parens expr]
 
 number = try (ConstInt <$> integer) <|> (ConstFloat <$> float)
 
@@ -32,14 +35,22 @@ var = Var <$> identifier <*> many (brackets expr)
 
 call = Call <$> identifier <*> parens (commaSep expr)
 
-condExpr = buildExpressionParser table expr
-  where
-    table = [ [rel "==" Eq, rel "!=" Ne, rel "<" Lt, rel "<=" Le, rel ">" Gt, rel ">=" Ge]
-            , [logic "&&" LAnd]
-            , [logic "||" LOr]
-            ]
-    rel name op = Infix (reservedOp name $> RelExpr op) AssocLeft
-    logic name op = Infix (reservedOp name $> LogicExpr op) AssocLeft
+relOp = choice
+      [ "==" `isOp` Eq
+      , "!=" `isOp` Ne
+      , "<" `isOp` Lt
+      , "<=" `isOp` Le
+      , ">" `isOp` Gt
+      , ">=" `isOp` Ge
+      ]
+
+relExpr = expr `chainl1` (RelExpr <$> relOp)
+
+landExpr = relExpr `chainl1` (LogicExpr <$> ("&&" `isOp` LAnd))
+
+lorExpr = landExpr `chainl1` (LogicExpr <$> ("||" `isOp` LOr))
+
+condExpr = lorExpr
 
 stmt = choice
       [ try exprStmt
@@ -57,7 +68,7 @@ exprStmt = ExprStmt <$> expr <* semi
 
 assignStmt = do
   Var name index <- var
-  reservedOp "="
+  symbol "="
   value <- expr
   semi
   return $ AssignStmt name index value
@@ -80,7 +91,7 @@ ifStmt = do
   reserved "if"
   cond <- parens condExpr
   true <- stmt
-  false <- (reserved "else" >> stmt) <|> return EmptyStmt
+  false <- optionMaybe (reserved "else" >> stmt)
   return $ IfStmt cond true false
 
 whileStmt = do
@@ -98,7 +109,7 @@ constDefs = do
   elemType <- varType
   commaSep $ do
     Var name index <- var
-    reservedOp "="
+    symbol "="
     init <- initVal
     return $ ConstDef elemType name index init
 
@@ -106,10 +117,10 @@ varDefs = do
   elemType <- varType
   commaSep $ do
     Var name index <- var
-    init <- optionMaybe (reservedOp "=" >> initVal)
+    init <- optionMaybe (symbol "=" >> initVal)
     return $ VarDef elemType name index init
 
-defs = (try constDefs <|> varDefs) <* reservedOp ";"
+defs = (try constDefs <|> varDefs) <* semi
 
 params = do
   elemType <- varType
