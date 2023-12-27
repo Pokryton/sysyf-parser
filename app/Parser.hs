@@ -13,7 +13,7 @@ expr = buildExpressionParser table unary
     table = [ [binary "*" Mul, binary "/" Div, binary "%" Mod]
             , [binary "+" Add, binary "-" Sub]
             ]
-    binary name f = Infix (reservedOp name $> (BinaryExpr f)) AssocLeft
+    binary name op = Infix (reservedOp name $> (BinaryExpr op)) AssocLeft
 
 unary = do
   ops <- many $ choice
@@ -28,20 +28,18 @@ primary = try call <|> var <|> number <|> parens expr
 
 number = try (ConstInt <$> integer) <|> (ConstFloat <$> float)
 
-var = Var <$> lval
+var = Var <$> identifier <*> many (brackets expr)
 
 call = Call <$> identifier <*> parens (commaSep expr)
 
-lval = LVal <$> identifier <*> many (brackets expr)
-
-condExpr = buildExpressionParser table (JustExpr <$> expr)
+condExpr = buildExpressionParser table expr
   where
     table = [ [rel "==" Eq, rel "!=" Ne, rel "<" Lt, rel "<=" Le, rel ">" Gt, rel ">=" Ge]
             , [logic "&&" LAnd]
             , [logic "||" LOr]
             ]
-    rel name f = Infix (reservedOp name $> RelExpr f) AssocLeft
-    logic name f = Infix (reservedOp name $> LogicExpr f) AssocLeft
+    rel name op = Infix (reservedOp name $> RelExpr op) AssocLeft
+    logic name op = Infix (reservedOp name $> LogicExpr op) AssocLeft
 
 stmt = choice
       [ try exprStmt
@@ -57,7 +55,12 @@ stmt = choice
 
 exprStmt = ExprStmt <$> expr <* semi
 
-assignStmt = Assign <$> lval <*> (reservedOp "=" *> expr <* semi)
+assignStmt = do
+  Var name index <- var
+  reservedOp "="
+  value <- expr
+  semi
+  return $ AssignStmt name index value
 
 emptyStmt = semi $> EmptyStmt
 
@@ -94,7 +97,7 @@ constDefs = do
   reserved "const"
   elemType <- varType
   commaSep $ do
-    LVal name index <- lval
+    Var name index <- var
     reservedOp "="
     init <- initVal
     return $ ConstDef elemType name index init
@@ -102,7 +105,7 @@ constDefs = do
 varDefs = do
   elemType <- varType
   commaSep $ do
-    LVal name index <- lval
+    Var name index <- var
     init <- optionMaybe (reservedOp "=" >> initVal)
     return $ VarDef elemType name index init
 
@@ -111,7 +114,7 @@ defs = (try constDefs <|> varDefs) <* reservedOp ";"
 params = do
   elemType <- varType
   name <- identifier
-  index <- optionMaybe ((brackets (optional expr)) >> many (brackets expr))
+  index <- optionMaybe (brackets (optional expr) >> many (brackets expr))
   return $ Param elemType name index
 
 funcDef = do

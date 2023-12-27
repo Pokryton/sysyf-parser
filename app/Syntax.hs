@@ -27,11 +27,11 @@ data Stmt
   = EmptyStmt
   | ExprStmt Expr
   | BlockStmt Block
-  | IfStmt CondExpr Stmt Stmt
-  | WhileStmt CondExpr Stmt
+  | IfStmt Expr Stmt Stmt
+  | WhileStmt Expr Stmt
   | VarDefStmt Def
   | ReturnStmt (Maybe Expr)
-  | Assign LVal Expr
+  | AssignStmt String [Expr] Expr
   | BreakStmt
   | ContinueStmt
   deriving (Eq, Show)
@@ -43,23 +43,18 @@ data Expr
   | ConstFloat Double
   | BinaryExpr BinaryOp Expr Expr
   | UnaryExpr UnaryOp Expr
-  | Var LVal
+  | Var String [Expr]
   | Call String [Expr]
+  | RelExpr RelOp Expr Expr
+  | LogicExpr LogicOp Expr Expr
   deriving (Eq, Show)
 
 data LVal = LVal String [Expr]
-  deriving (Eq, Show)
 
 data BinaryOp = Add | Sub | Mul | Div | Mod
   deriving (Eq, Show)
 
 data UnaryOp = Pos | Neg | Not
-  deriving (Eq, Show)
-
-data CondExpr
-  = JustExpr Expr
-  | RelExpr RelOp CondExpr CondExpr
-  | LogicExpr LogicOp CondExpr CondExpr
   deriving (Eq, Show)
 
 data RelOp = Eq | Ne | Lt | Le | Gt | Ge
