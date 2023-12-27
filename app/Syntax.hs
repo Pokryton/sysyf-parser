@@ -1,27 +1,14 @@
 module Syntax where
 
-type CompUnit = [GlobalDef]
+type CompUnit = [Def]
 
-data LVal = LVal String [Expr]
+data Def
+  = ConstDef VarType String [Expr] InitVal
+  | VarDef VarType String [Expr] (Maybe InitVal)
+  | FuncDef RetType String [Param] Block
   deriving (Eq, Show)
-
-data GlobalDef = Func FuncDef | GVar Decl
-  deriving (Eq, Show)
-
-data Decl
-  = ConstDecl VarType String [Expr] InitVal
-  | VarDecl VarType String [Expr] (Maybe InitVal)
-  deriving (Eq, Show)
-
-data BlockItem = Decl Decl | Stmt Stmt
-  deriving (Eq, Show)
-
-type Block = [BlockItem]
 
 data InitVal = InitExpr Expr | InitList [InitVal]
-  deriving (Eq, Show)
-
-data FuncDef = FuncDef RetType String [Param] Block
   deriving (Eq, Show)
 
 data Param = Param VarType String (Maybe [Expr])
@@ -38,11 +25,14 @@ data Stmt
   | BlockStmt Block
   | IfStmt CondExpr Stmt Stmt
   | WhileStmt CondExpr Stmt
+  | VarDefStmt Def
   | ReturnStmt (Maybe Expr)
   | Assign LVal Expr
   | BreakStmt
   | ContinueStmt
   deriving (Eq, Show)
+
+type Block = [Stmt]
 
 data Expr
   = ConstInt Integer
@@ -51,6 +41,9 @@ data Expr
   | UnaryExpr UnaryOp Expr
   | Var LVal
   | Call String [Expr]
+  deriving (Eq, Show)
+
+data LVal = LVal String [Expr]
   deriving (Eq, Show)
 
 data BinaryOp = Plus | Minus | Times | Divide | Modulo
