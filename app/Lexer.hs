@@ -16,8 +16,8 @@ def = emptyDef
         , P.opLetter        = oneOf "&=|"
         , P.reservedOpNames = [ "+", "-", "*", "/", "%", "!", "<", ">"
                               , "<=", ">=", "==", "!=", "&&", "||"]
-        , P.reservedNames   = [ "void", "int", "float", "if", "else"
-                              , "while" , "break", "continue"]
+        , P.reservedNames   = [ "void", "int", "float", "const", "if"
+                              , "else" , "while" , "break", "continue"]
         , P.caseSensitive   = True
         }
 

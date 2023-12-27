@@ -24,9 +24,11 @@ primary = number <|> parens expr <|> try call <|> var
 
 number = try (ConstInt <$> integer) <|> (ConstFloat <$> float)
 
-var = Var <$> identifier
+var = Var <$> lval
 
 call = Call <$> identifier <*> parens (commaSep expr)
+
+lval = LVal <$> identifier <*> many (brackets expr)
 
 condExpr = buildExpressionParser table (JustExpr <$> expr)
   where
@@ -38,7 +40,8 @@ condExpr = buildExpressionParser table (JustExpr <$> expr)
     binary name f = Infix (reservedOp name $> f) AssocLeft
 
 stmt = emptyStmt
-    <|> exprStmt
+    <|> try exprStmt
+    <|> assignStmt
     <|> ifStmt
     <|> whileStmt
     <|> breakStmt
@@ -49,11 +52,15 @@ emptyStmt = semi $> EmptyStmt
 
 exprStmt = ExprStmt <$> expr <* semi
 
-blockStmt = BlockStmt <$> braces (many stmt)
+blockStmt = BlockStmt <$> block
+
+block = concat <$> braces (many ((pure . Stmt <$> try stmt) <|> (map Decl <$> decls)))
 
 breakStmt = reserved "break" >> semi $> BreakStmt
 
 continueStmt = reserved "continue" >> semi $> ContinueStmt
+
+assignStmt = Assign <$> lval <*> (reservedOp "=" *> expr <* semi)
 
 ifStmt = do
   reserved "if"
@@ -67,6 +74,28 @@ whileStmt = do
   cond <- parens condExpr
   body <- stmt
   return $ WhileStmt cond body
+
+varType = (reserved "int" $> IntType) <|> (reserved "float" $> FloatType)
+
+initVal = try (InitList <$> braces (commaSep initVal)) <|> (InitExpr <$> expr)
+
+constDecls = do
+  reserved "const"
+  elemType <- varType
+  commaSep $ do
+    LVal name index  <- lval
+    reservedOp "="
+    init <- initVal
+    return $ ConstDecl elemType name index init
+
+varDecls = do
+  elemType <- varType
+  commaSep $ do
+    LVal name index  <- lval
+    init <- Just <$> (try (reservedOp "=" >> initVal)) <|> return Nothing
+    return $ VarDecl elemType name index init
+
+decls = try constDecls <|> varDecls
 
 compUnit = (many stmt) <* eof
 
