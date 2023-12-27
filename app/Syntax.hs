@@ -1,8 +1,11 @@
 module Syntax where
 
-type CompUnit = [Stmt]
+type CompUnit = [GlobalDef]
 
 data LVal = LVal String [Expr]
+  deriving (Eq, Show)
+
+data GlobalDef = Func FuncDef | GVar Decl
   deriving (Eq, Show)
 
 data Decl
@@ -18,11 +21,16 @@ type Block = [BlockItem]
 data InitVal = InitExpr Expr | InitList [InitVal]
   deriving (Eq, Show)
 
+data FuncDef = FuncDef RetType String [Param] Block
+  deriving (Eq, Show)
+
+data Param = Param VarType String (Maybe [Expr])
+  deriving (Eq, Show)
+
 data VarType = IntType | FloatType
   deriving (Eq, Show)
 
-data RetType = Ret VarType | Void
-  deriving (Eq, Show)
+type RetType = Maybe VarType
 
 data Stmt
   = EmptyStmt
@@ -30,6 +38,7 @@ data Stmt
   | BlockStmt Block
   | IfStmt CondExpr Stmt Stmt
   | WhileStmt CondExpr Stmt
+  | ReturnStmt (Maybe Expr)
   | Assign LVal Expr
   | BreakStmt
   | ContinueStmt

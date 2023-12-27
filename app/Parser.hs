@@ -39,11 +39,12 @@ condExpr = buildExpressionParser table (JustExpr <$> expr)
     logic name f = binary name (LogicExpr f)
     binary name f = Infix (reservedOp name $> f) AssocLeft
 
-stmt = emptyStmt
-    <|> try exprStmt
+stmt = try exprStmt
     <|> assignStmt
+    <|> emptyStmt
     <|> ifStmt
     <|> whileStmt
+    <|> returnStmt
     <|> breakStmt
     <|> continueStmt
     <|> blockStmt
@@ -59,6 +60,8 @@ block = concat <$> braces (many ((pure . Stmt <$> try stmt) <|> (map Decl <$> de
 breakStmt = reserved "break" >> semi $> BreakStmt
 
 continueStmt = reserved "continue" >> semi $> ContinueStmt
+
+returnStmt = ReturnStmt <$> (reserved "return" *> optionMaybe expr <* semi)
 
 assignStmt = Assign <$> lval <*> (reservedOp "=" *> expr <* semi)
 
@@ -83,7 +86,7 @@ constDecls = do
   reserved "const"
   elemType <- varType
   commaSep $ do
-    LVal name index  <- lval
+    LVal name index <- lval
     reservedOp "="
     init <- initVal
     return $ ConstDecl elemType name index init
@@ -91,12 +94,25 @@ constDecls = do
 varDecls = do
   elemType <- varType
   commaSep $ do
-    LVal name index  <- lval
-    init <- Just <$> (try (reservedOp "=" >> initVal)) <|> return Nothing
+    LVal name index <- lval
+    init <- optionMaybe (reservedOp "=" >> initVal)
     return $ VarDecl elemType name index init
 
 decls = try constDecls <|> varDecls
 
-compUnit = (many stmt) <* eof
+params = do
+  elemType <- varType
+  name <- identifier
+  index <- optionMaybe ((brackets (optional expr)) >> many (brackets expr))
+  return $ Param elemType name index
+
+funcDef = do
+  retType <- (Just <$> varType) <|> (reserved "void" $> Nothing)
+  name <- identifier
+  params <- parens (commaSep params)
+  body <- block
+  return $ FuncDef retType name params body
+
+compUnit = concat <$> (many ((pure . Func <$> try funcDef) <|> (map GVar <$> decls))) <* eof
 
 parseCompUnit = parse compUnit
