@@ -137,6 +137,6 @@ funcDef = do
 
 globalDefs = try (map Global <$> defs) <|> (pure <$> funcDef)
 
-compUnit = concat <$> (many globalDefs) <* eof
+compUnit = concat <$> (whiteSpace *> many globalDefs <* eof)
 
 parseFile = parseFromFile compUnit
