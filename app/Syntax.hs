@@ -46,10 +46,10 @@ data Expr
 data LVal = LVal String [Expr]
   deriving (Eq, Show)
 
-data BinaryOp = Plus | Minus | Times | Divide | Modulo
+data BinaryOp = Add | Sub | Mul | Div | Mod
   deriving (Eq, Show)
 
-data UnaryOp = Positive | Negative | Not
+data UnaryOp = Pos | Neg | Not
   deriving (Eq, Show)
 
 data CondExpr
@@ -58,7 +58,7 @@ data CondExpr
   | LogicExpr LogicOp CondExpr CondExpr
   deriving (Eq, Show)
 
-data RelOp = Eq | Neq | Lt | Le | Gt | Ge
+data RelOp = Eq | Ne | Lt | Le | Gt | Ge
   deriving (Eq, Show)
 
 data LogicOp = LAnd | LOr

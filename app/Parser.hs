@@ -9,15 +9,15 @@ import Syntax
 
 expr = buildExpressionParser table unary
   where
-    table = [ [binary "*" Times, binary "/" Divide, binary "%" Modulo]
-            , [binary "+" Plus, binary "-" Minus]
+    table = [ [binary "*" Mul, binary "/" Div, binary "%" Mod]
+            , [binary "+" Add, binary "-" Sub]
             ]
     binary name f = Infix (reservedOp name $> (BinaryExpr f)) AssocLeft
 
 unary = do
   ops <- many $ choice
-           [ reservedOp "+" $> Positive
-           , reservedOp "-" $> Negative
+           [ reservedOp "+" $> Pos
+           , reservedOp "-" $> Neg
            , reservedOp "!" $> Not
            ]
   p <- primary
@@ -35,7 +35,7 @@ lval = LVal <$> identifier <*> many (brackets expr)
 
 condExpr = buildExpressionParser table (JustExpr <$> expr)
   where
-    table = [ [rel "==" Eq, rel "!=" Neq, rel "<" Lt, rel "<=" Le, rel ">" Gt, rel ">=" Ge]
+    table = [ [rel "==" Eq, rel "!=" Ne, rel "<" Lt, rel "<=" Le, rel ">" Gt, rel ">=" Ge]
             , [logic "&&" LAnd]
             , [logic "||" LOr]
             ]
