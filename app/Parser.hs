@@ -9,15 +9,13 @@ import Syntax
 sym op s = op <$ symbol s
 keyword f s = f <$ reserved s
 
-expr = addExpr
+number = try (ConstFloat <$> float) <|> (ConstInt <$> integer)
 
-addOp = (Add `sym` "+") <|> (Sub `sym` "-")
+var = Var <$> identifier <*> many (brackets expr)
 
-addExpr = mulExpr `chainl1` (BinaryExpr <$> addOp)
+call = Call <$> identifier <*> parens (commaSep expr)
 
-mulOp = (Mul `sym` "*") <|> (Div `sym` "/") <|> (Mod `sym` "%")
-
-mulExpr = unaryExpr `chainl1` (BinaryExpr <$> mulOp)
+primaryExpr = choice [try call, var, number, parens expr]
 
 unaryOp = (Pos `sym` "+") <|> (Neg `sym` "-") <|> (Not `sym` "!")
 
@@ -26,24 +24,28 @@ unaryExpr = do
   p <- primaryExpr
   return $ foldr UnaryExpr p ops
 
-primaryExpr = choice [try call, var, number, parens expr]
+mulOp = (Mul `sym` "*") <|> (Div `sym` "/") <|> (Mod `sym` "%")
 
-number = try (ConstFloat <$> float) <|> (ConstInt <$> integer)
+mulExpr = unaryExpr `chainl1` (BinaryExpr <$> mulOp)
 
-var = Var <$> identifier <*> many (brackets expr)
+addOp = (Add `sym` "+") <|> (Sub `sym` "-")
 
-call = Call <$> identifier <*> parens (commaSep expr)
+addExpr = mulExpr `chainl1` (BinaryExpr <$> addOp)
+
+expr = addExpr
+
+eqOp = (Eq `sym` "==") <|> (Ne `sym` "!=")
+
+eqExpr = expr `chainl1` (RelExpr <$> eqOp)
 
 relOp = choice
-      [ Eq `sym` "=="
-      , Ne `sym` "!="
-      , Lt `sym` "<"
+      [ Lt `sym` "<"
       , Le `sym` "<="
       , Gt `sym` ">"
       , Ge `sym` ">="
       ]
 
-relExpr = expr `chainl1` (RelExpr <$> relOp)
+relExpr = eqExpr `chainl1` (RelExpr <$> relOp)
 
 landExpr = relExpr `chainl1` (LogicExpr <$> (LAnd `sym` "&&"))
 
