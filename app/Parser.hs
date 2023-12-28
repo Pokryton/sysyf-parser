@@ -2,7 +2,6 @@ module Parser where
 
 import Text.Parsec
 import Text.Parsec.String
-import Text.Parsec.Expr
 
 import Lexer
 import Syntax
