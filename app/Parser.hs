@@ -6,7 +6,7 @@ import Text.Parsec.String
 import Lexer
 import Syntax
 
-sym op s = op <$ symbol s
+sym op s = op <$ try (symbol s)
 keyword f s = f <$ reserved s
 
 number = try (ConstFloat <$> float) <|> (ConstInt <$> integer)
@@ -39,10 +39,10 @@ eqOp = (Eq `sym` "==") <|> (Ne `sym` "!=")
 eqExpr = expr `chainl1` (RelExpr <$> eqOp)
 
 relOp = choice
-      [ Lt `sym` "<"
-      , Le `sym` "<="
-      , Gt `sym` ">"
+      [ Le `sym` "<="
+      , Lt `sym` "<"
       , Ge `sym` ">="
+      , Gt `sym` ">"
       ]
 
 relExpr = eqExpr `chainl1` (RelExpr <$> relOp)
